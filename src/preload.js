@@ -1,0 +1,1 @@
+require('@rongcloud/electron-renderer');

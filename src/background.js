@@ -5,25 +5,28 @@ import { createProtocol } from 'vue-cli-plugin-electron-builder/lib'
 import installExtension, { VUEJS3_DEVTOOLS } from 'electron-devtools-installer'
 const isDevelopment = process.env.NODE_ENV !== 'production'
 
+const path = require('path')
+
+const RCInit = require('@rongcloud/electron');
+let rcService
+
 // Scheme must be registered before the app is ready
 protocol.registerSchemesAsPrivileged([
   { scheme: 'app', privileges: { secure: true, standard: true } }
 ])
-
 async function createWindow() {
   // Create the browser window.
   const win = new BrowserWindow({
     width: 800,
     height: 600,
     webPreferences: {
-      
       // Use pluginOptions.nodeIntegration, leave this alone
       // See nklayman.github.io/vue-cli-plugin-electron-builder/guide/security.html#node-integration for more info
-      nodeIntegration: process.env.ELECTRON_NODE_INTEGRATION,
-      contextIsolation: !process.env.ELECTRON_NODE_INTEGRATION
+      nodeIntegration: true,
+      contextIsolation: false,
+      preload: path.join(__dirname, '/preload.js'),
     }
   })
-
   if (process.env.WEBPACK_DEV_SERVER_URL) {
     // Load the url of the dev server if in development mode
     await win.loadURL(process.env.WEBPACK_DEV_SERVER_URL)
@@ -39,6 +42,7 @@ async function createWindow() {
 app.on('window-all-closed', () => {
   // On macOS it is common for applications and their menu bar
   // to stay active until the user quits explicitly with Cmd + Q
+  rcService.getCppProto().destroy();
   if (process.platform !== 'darwin') {
     app.quit()
   }
@@ -54,6 +58,31 @@ app.on('activate', () => {
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.on('ready', async () => {
+  // 在 app 的 ready 事件通知后进行初始化
+  rcService = RCInit({
+    /**
+     * 【必填】Appkey , 自 5.6.0 版本起，必须填该参数
+     * [option]
+     */
+    appkey: 'bmdehs6pbf1xs',
+    /**
+     * 【选填】消息数据库的存储位置，不推荐修改
+     * [option]
+     */
+    dbpath: app.getPath('userData'),
+    /**
+     * 【选填】日志等级
+     * [option] 0 - DEBUG, 1 - INFO, 2(default) - WARN, 3 - ERROR
+     */
+    logLevel: 3,
+    /**x
+     * 【选填】当需要对 SDK 内的日志落盘时，在此实现落盘方法
+     * [option]
+     */
+    logStdout (logLevel, tag, ...args) {
+      console.log(tag, ...args)
+    }
+  })
   if (isDevelopment && !process.env.IS_TEST) {
     // Install Vue Devtools
     try {

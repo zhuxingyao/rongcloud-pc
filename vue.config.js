@@ -3,9 +3,13 @@ module.exports = defineConfig({
   transpileDependencies: true,
   pluginOptions: {
     electronBuilder: {
-      chainWebpackMainProcess: (config) => {
-        config.output.filename('background.js');
-      }
+      externals: ['@rongcloud/electron', '@rongcloud/engine'],
+      preload: 'src/preload.js',
+      nodeIntegration: true,
+      asar: true,
+      // chainWebpackMainProcess: (config) => {
+      //   config.output.filename('background.js');
+      // },
     }
   }
 })
